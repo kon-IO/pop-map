@@ -1,0 +1,16 @@
+{
+  "name": "pop-map",
+  "module": "index.js",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "webpack": "^5.93.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "shpjs": "^6.1.0"
+  }
+}
