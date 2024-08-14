@@ -6,7 +6,7 @@ const HtmlMinimizerPlugin = require("html-minimizer-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  mode: "production",
+  mode: "development",
   entry: "./src/index.js",
   module: {
     rules: [
@@ -53,6 +53,21 @@ module.exports = {
           context: "./src",
           from: "*.json",
         },
+        {
+          to: path.resolve(__dirname, "dist"),
+          context: "./node_modules/leaflet/dist",
+          from: "leaflet.css"
+        },
+        {
+          to: path.resolve(__dirname, "dist"),
+          context: "./node_modules/leaflet/dist",
+          from: "images/layers*.png"
+        },
+        {
+          to: path.resolve(__dirname, "dist"),
+          context: "./public",
+          from: "*"
+        }
       ],
     }),
   ],

@@ -7,6 +7,7 @@ import {
   control,
   tooltip,
   Point,
+  DomUtil,
 } from "leaflet";
 
 function coordsToLatLngCustom(coords) {
@@ -23,7 +24,7 @@ let theMap;
 
 const mapLayer = tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution:
-    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <span aria-hidden="true">|</span> <a href="https://www.statistics.gr">www.statistics.gr</a>',
 });
 
 const baseMaps = { OpenStreetMap: mapLayer };
@@ -31,34 +32,120 @@ const baseMaps = { OpenStreetMap: mapLayer };
 let overlayMaps;
 
 let dimLayer;
+let enotLayer;
 let koinLayer;
 
-async function initialize() {
-  const getKoin = async () => {
-    const r = await fetch("./dimkoin.json");
-    return await r.json();
-  };
-  const getDim = async () => {
-    const r = await fetch("./dim.json");
-    return await r.json();
-  };
-  const getDimData = async () => {
-    const r = await fetch("./dimdata.json");
-    return await r.json();
-  };
-  const getKoinData = async () => {
-    const r = await fetch("./koindata.json");
-    return await r.json();
-  };
+let countryPop;
 
-  const getGeoDataPromise = Promise.all([getKoin(), getDim()]);
+async function getAndParseJson(url) {
+  const r = await fetch(url);
+  return await r.json();
+}
+
+function makePopPercentageStr(pop, percentage) {
+  let pStr;
+  if (percentage === 0 && pop !== 0) {
+    pStr = "<0,01%";
+  } else {
+    pStr = percentage.toLocaleString("el-GR") + "%";
+  }
+  return pStr;
+}
+
+function calculateCountryAndDimPercentage(pop, code) {
+  const dimPop = parseInt(
+    koinPopMap.get(code.slice(0, 4))["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"].replaceAll(".", ""),
+    10
+  );
+  return [
+    makePopPercentageStr(pop, Math.round((pop / countryPop) * 10000) / 100),
+    makePopPercentageStr(pop, Math.round((pop / dimPop) * 10000) / 100),
+  ];
+}
+
+function calculateAllPercentages(koinPop, code) {
+  const dimUnitPop = parseInt(
+    koinPopMap.get(code.slice(0, 6))["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"].replaceAll(".", ""),
+    10
+  );
+
+  const arr = calculateCountryAndDimPercentage(koinPop, code);
+  arr.push(
+    makePopPercentageStr(
+      koinPop,
+      Math.round((koinPop / dimUnitPop) * 10000) / 100
+    )
+  );
+
+  return arr;
+}
+
+const DIM_LAYER = 0;
+const ENOT_LAYER = 1;
+const KOIN_LAYER = 2;
+
+function setInteractiveForLayer(layer, interactive) {
+  if (!theMap.hasLayer(layer)) return;
+  layer.options.interactive = interactive;
+  if (interactive) {
+    layer.eachLayer((l) => {
+      DomUtil.addClass(l.getElement(), "leaflet-interactive");
+    });
+    return;
+  }
+  layer.eachLayer((l) => {
+    DomUtil.removeClass(l.getElement(), "leaflet-interactive");
+  });
+}
+
+function handleInteractivity(layer_num) {
+  if (theMap === undefined) return;
+  const dim = theMap.hasLayer(dimLayer);
+  const enot = theMap.hasLayer(enotLayer);
+  const koin = theMap.hasLayer(koinLayer);
+
+  console.log(dim, enot, koin);
+  if (dim && enot && koin) {
+    setInteractiveForLayer(dimLayer, false);
+    setInteractiveForLayer(enotLayer, false);
+    setInteractiveForLayer(koinLayer, true);
+  } else if (!dim && enot && koin) {
+    setInteractiveForLayer(enotLayer, false);
+    setInteractiveForLayer(koinLayer, true);
+  } else if (dim && !enot && koin) {
+    setInteractiveForLayer(dimLayer, false);
+    setInteractiveForLayer(koinLayer, true);
+  } else if (dim && enot && !koin) {
+    setInteractiveForLayer(dimLayer, false);
+    setInteractiveForLayer(enotLayer, true);
+  } else {
+    setInteractiveForLayer(dimLayer, true);
+    setInteractiveForLayer(enotLayer, true);
+    setInteractiveForLayer(koinLayer, true);
+  }
+}
+
+async function initialize() {
+  const getGeoDataPromise = Promise.all([
+    getAndParseJson("./dimkoin.json"),
+    getAndParseJson("./dimenot.json"),
+    getAndParseJson("./dim.json"),
+  ]);
   let dimdata, koindata;
   try {
-    [dimdata, koindata] = await Promise.all([getDimData(), getKoinData()]);
+    [dimdata, koindata] = await Promise.all([
+      getAndParseJson("./dimdata.json"),
+      getAndParseJson("./koindata.json"),
+    ]);
   } catch (e) {
     alert("Oops! Something went wrong...1 " + e);
     return;
   }
+
+  countryPop = parseInt(
+    dimdata[0]["Μόνιμος Πληθυσμός 2021"].replaceAll(".", ""),
+    10
+  );
 
   dimdata.forEach((d) => {
     dimPopMap.set(d["Γεωγραφικός κωδικός"], d);
@@ -93,80 +180,146 @@ async function initialize() {
   //   }
   // });
 
-  let koin, dim;
+  let koin, enot, dim;
   try {
-    [koin, dim] = await getGeoDataPromise;
+    [koin, enot, dim] = await getGeoDataPromise;
   } catch (e) {
     alert("Oops! Something went wrong... " + e);
     return;
   }
 
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () =>
+      createMapAndLayers(dim, enot, koin)
+    );
+  } else {
+    createMapAndLayers(dim, enot, koin);
+  }
+}
+
+function createMapAndLayers(dim, enot, koin) {
+  theMap = map("map", {
+    zoom: 7,
+    center: [38.5253, 22.3753],
+    // preferCanvas: true,
+  });
+  theMap.createPane("dim").style.zIndex = 403;
+  theMap.createPane("enot").style.zIndex = 402;
+  theMap.createPane("koin").style.zIndex = 401;
+
   dimLayer = geoJSON(dim, {
     coordsToLatLng: coordsToLatLngCustom,
     style: () => {
-      return { color: "#db3609" };
+      return { color: "#db3609", fillOpacity: 0.1 };
     },
     onEachFeature: (_feature, layer) => {
       layer.on("mouseover", () => {
-        layer.setStyle({ color: "#455d75" });
+        layer.setStyle({ color: "#17e81e", fillOpacity: 0.1 });
       });
       layer.on("mouseout", () => {
-        layer.setStyle({ color: "#db3609" });
+        layer.setStyle({ color: "#db3609", fillOpacity: 0.1 });
       });
     },
+    pane: "dim",
   }).bindTooltip(
     (layer) => {
       // console.log(layer);
       const d = dimPopMap.get(layer.feature.properties.CODE);
-      return `<h2>${layer.feature.properties.NAME_GR}</h2><p class="tooltip-pop">Πληθυσμός 2021: <b>${d["Μόνιμος Πληθυσμός 2021"]}</b></p>` /* + d["Περιγραφή"] */;
+      const popStr = d["Μόνιμος Πληθυσμός 2021"];
+      const pop = parseInt(popStr.replaceAll(".", ""), 10);
+      return `<h2>${
+        layer.feature.properties.NAME_GR
+      }</h2><p class="tooltip-pop">Πληθυσμός 2021: <b>${popStr}</b></p><p><i>${makePopPercentageStr(
+        pop,
+        Math.round((pop / countryPop) * 10000) / 100
+      )} Επικράτειας</i></p>` /* + d["Περιγραφή"] */;
     },
     { sticky: true, offset: [50, 0] }
   );
+  dimLayer.on("add", () => handleInteractivity(DIM_LAYER));
+  dimLayer.on("remove", () => handleInteractivity(DIM_LAYER));
 
-  koinLayer = geoJSON(koin, {
+  enotLayer = geoJSON(enot, {
     coordsToLatLng: coordsToLatLngCustom,
     style: () => {
-      return { color: "#334455" };
+      return { color: "#f08222", fillOpacity: 0.1 };
     },
     onEachFeature: (_feature, layer) => {
       layer.on("mouseover", () => {
         // layer.setStyle({ color: "#8ebbe8" });
-        layer.setStyle({ color: "#8a2307" });
+        layer.setStyle({ color: "#17e81e", fillOpacity: 0.1 });
       });
       layer.on("mouseout", () => {
-        layer.setStyle({ color: "#334455" });
+        layer.setStyle({ color: "#f08222", fillOpacity: 0.1 });
       });
     },
+    pane: "enot",
+  }).bindTooltip(
+    (layer) => {
+      console.log(layer);
+      const code = layer.feature.properties.CODE;
+      const d = koinPopMap.get(code);
+      const pop = d["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"];
+      const [pCountry, pDim] = calculateCountryAndDimPercentage(
+        parseInt(pop.replaceAll(".", ""), 10),
+        code
+      );
+      let pCountryStr = pCountry;
+      if (pCountryStr === 0 && pop !== 0) {
+        pCountryStr = "<0.01";
+      }
+      return `<h2>${layer.feature.properties.NAME_GR}</h2><h3>${
+        koinPopMap.get(code.slice(0, 4)).ΠΕΡΙΓΡΑΦΗ
+      }</h3><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountryStr} Επικράτειας<br />${pDim} Δήμου</i></p>` /* + d["Περιγραφή"] */;
+    },
+    { sticky: true, offset: [50, 0], className: "koin-tooltip" }
+  );
+  enotLayer.on("add", () => handleInteractivity(DIM_LAYER));
+  enotLayer.on("remove", () => handleInteractivity(DIM_LAYER));
+
+  koinLayer = geoJSON(koin, {
+    coordsToLatLng: coordsToLatLngCustom,
+    style: () => {
+      return { color: "#334455", fillOpacity: 0.1 };
+    },
+    onEachFeature: (_feature, layer) => {
+      layer.on("mouseover", () => {
+        // layer.setStyle({ color: "#8ebbe8" });
+        layer.setStyle({ color: "#17e81e", fillOpacity: 0.1 });
+      });
+      layer.on("mouseout", () => {
+        layer.setStyle({ color: "#334455", fillOpacity: 0.1 });
+      });
+    },
+    pane: "koin",
   }).bindTooltip(
     (layer) => {
       // console.log(layer);
       const code = layer.feature.properties.KAL2022;
       const d = koinPopMap.get(code);
+      const pop = d["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"];
+      const [pCountry, pDim, pDimUnit] = calculateAllPercentages(
+        parseInt(pop.replaceAll(".", ""), 10),
+        code
+      );
       return `<h2>${layer.feature.properties.LAU_LABEL3}</h2><h3>${
+        koinPopMap.get(code.slice(0, 6)).ΠΕΡΙΓΡΑΦΗ
+      }</h3><h5>${
         koinPopMap.get(code.slice(0, 4)).ΠΕΡΙΓΡΑΦΗ
-      }</h3><p class="tooltip-pop">Πληθυσμός 2021: <b>${
-        d["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"]
-      }</b></p>` /* + d["Περιγραφή"] */;
+      }</h5><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountry} Επικράτειας<br />${pDim} Δήμου<br />${pDimUnit} Δημοτικής Ενότητας</i></p>` /* + d["Περιγραφή"] */;
     },
-    { sticky: true, offset: [50, 0] }
+    { sticky: true, offset: [50, 0], className: "koin-tooltip" }
   );
+  koinLayer.on("add", () => handleInteractivity(DIM_LAYER));
+  koinLayer.on("remove", () => handleInteractivity(DIM_LAYER));
 
-  overlayMaps = { Δήμοι: dimLayer, "Δημοτικές Κοινότητες": koinLayer };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", createMap);
-  } else {
-    createMap();
-  }
-}
-
-function createMap() {
-  theMap = map("map", {
-    zoom: 7,
-    center: [38.5253, 22.3753],
-    // preferCanvas: true,
-    layers: [mapLayer, dimLayer],
-  });
+  overlayMaps = {
+    Δήμοι: dimLayer,
+    "Δημοτικές Ενότητες": enotLayer,
+    "Δημοτικές Κοινότητες": koinLayer,
+  };
+  theMap.addLayer(mapLayer);
+  theMap.addLayer(dimLayer);
   control.layers(baseMaps, overlayMaps).addTo(theMap);
 }
 

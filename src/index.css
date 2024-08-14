@@ -22,6 +22,10 @@ h2 {
   width: 100%;
 }
 
-.tooltip-pop {
+.koin-tooltip {
+  line-height: 1.2em;
+}
+
+.tooltip-pop-num {
   font-size: medium;
 }
