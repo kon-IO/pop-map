@@ -24,7 +24,7 @@ let theMap;
 
 const mapLayer = tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution:
-    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <span aria-hidden="true">|</span> <a href="https://www.statistics.gr">www.statistics.gr</a>',
+    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <span aria-hidden="true">|</span> Πηγή: <a href="https://www.statistics.gr">ΕΛ.ΣΤΑΤ.</a>',
 });
 
 const baseMaps = { OpenStreetMap: mapLayer };
@@ -315,6 +315,11 @@ function createMapAndLayers(dim, enot, koin) {
     "Δημοτικές Ενότητες": enotLayer,
     "Δημοτικές Κοινότητες": koinLayer,
   };
+
+  alert(
+    "Τα δεδομένα που προβάλλονται στον χάρτη ελήφθησαν από την Ελληνική Στατιστική Αρχή, και τροποποιήθηκαν κατάλληλα από τον δημιουργό της ιστοσελίδας. Η Ελληνική Στατιστική Αρχή δεν φέρει καμία ευθύνη για το αποτέλεσμα της τροποποίησης αυτής."
+  );
+
   theMap.addLayer(mapLayer);
   theMap.addLayer(dimLayer);
   control.layers(baseMaps, overlayMaps).addTo(theMap);
