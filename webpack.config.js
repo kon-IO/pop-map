@@ -50,7 +50,12 @@ module.exports = {
         },
         {
           to: path.resolve(__dirname, "dist"),
-          context: "./src",
+          context: "./src/mapping-data",
+          from: "*.json",
+        },
+        {
+          to: path.resolve(__dirname, "dist"),
+          context: "./src/population-data",
           from: "*.json",
         },
         {

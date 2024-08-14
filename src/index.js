@@ -54,7 +54,7 @@ function makePopPercentageStr(pop, percentage) {
 
 function calculateCountryAndDimPercentage(pop, code) {
   const dimPop = parseInt(
-    koinPopMap.get(code.slice(0, 4))["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"].replaceAll(".", ""),
+    koinPopMap.get(code.slice(0, 4))[3].replaceAll(".", ""),
     10
   );
   return [
@@ -65,7 +65,7 @@ function calculateCountryAndDimPercentage(pop, code) {
 
 function calculateAllPercentages(koinPop, code) {
   const dimUnitPop = parseInt(
-    koinPopMap.get(code.slice(0, 6))["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"].replaceAll(".", ""),
+    koinPopMap.get(code.slice(0, 6))[3].replaceAll(".", ""),
     10
   );
 
@@ -134,48 +134,45 @@ async function initialize() {
   let dimdata, koindata;
   try {
     [dimdata, koindata] = await Promise.all([
-      getAndParseJson("./dimdata.json"),
-      getAndParseJson("./koindata.json"),
+      getAndParseJson("./dimdata-array.json"),
+      getAndParseJson("./koindata-array.json"),
     ]);
   } catch (e) {
     alert("Oops! Something went wrong...1 " + e);
     return;
   }
 
-  countryPop = parseInt(
-    dimdata[0]["Μόνιμος Πληθυσμός 2021"].replaceAll(".", ""),
-    10
-  );
+  countryPop = parseInt(dimdata[0][4].replaceAll(".", ""), 10);
 
   dimdata.forEach((d) => {
-    dimPopMap.set(d["Γεωγραφικός κωδικός"], d);
+    dimPopMap.set(d[1], d);
   });
-  // code to detect geographic code mismatch between the two datasets based on the description
+  // Code to detect geographic code mismatch between the two datasets based on the description
   // dim.features.forEach((f) => {
-  //   const da = dimPopMap.get(f.properties.code);
-  //   const desc = da.Περιγραφή;
+  //   const da = dimPopMap.get(f.properties.CODE);
+  //   const desc = da[2];
   //   if (f.properties.NAME_GR !== desc) {
   //     console.log(
   //       f.properties.NAME_GR,
   //       f.properties.CODE,
   //       desc,
-  //       da["Γεωγραφικός Κωδικός"]
+  //       da[1]
   //     );
   //   }
   // });
   koindata.forEach((d) => {
-    koinPopMap.set(d["Γ.Κ. 2021"], d);
+    koinPopMap.set(d[0], d);
   });
-  // code to detect geographic code mismatch between the two datasets based on the description
+  // Code to detect geographic code mismatch between the two datasets based on the description
   // koin.features.forEach((f) => {
   //   const da = koinPopMap.get(f.properties.KAL2022);
-  //   const desc = da.ΠΕΡΙΓΡΑΦΗ;
+  //   const desc = da[2];
   //   if (f.properties.LAU_LABEL3 !== desc) {
   //     console.log(
   //       f.properties.LAU_LABEL3,
   //       f.properties.KAL2022,
   //       desc,
-  //       da["Γ.Κ. 2021"]
+  //       da[0]
   //     );
   //   }
   // });
@@ -225,14 +222,14 @@ function createMapAndLayers(dim, enot, koin) {
     (layer) => {
       // console.log(layer);
       const d = dimPopMap.get(layer.feature.properties.CODE);
-      const popStr = d["Μόνιμος Πληθυσμός 2021"];
+      const popStr = d[4];
       const pop = parseInt(popStr.replaceAll(".", ""), 10);
       return `<h2>${
         layer.feature.properties.NAME_GR
       }</h2><p class="tooltip-pop">Πληθυσμός 2021: <b>${popStr}</b></p><p><i>${makePopPercentageStr(
         pop,
         Math.round((pop / countryPop) * 10000) / 100
-      )} Επικράτειας</i></p>` /* + d["Περιγραφή"] */;
+      )} Επικράτειας</i></p>` /* + d[2] */;
     },
     { sticky: true, offset: [50, 0] }
   );
@@ -259,7 +256,7 @@ function createMapAndLayers(dim, enot, koin) {
       console.log(layer);
       const code = layer.feature.properties.CODE;
       const d = koinPopMap.get(code);
-      const pop = d["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"];
+      const pop = d[3];
       const [pCountry, pDim] = calculateCountryAndDimPercentage(
         parseInt(pop.replaceAll(".", ""), 10),
         code
@@ -269,7 +266,7 @@ function createMapAndLayers(dim, enot, koin) {
         pCountryStr = "<0.01";
       }
       return `<h2>${layer.feature.properties.NAME_GR}</h2><h3>${
-        koinPopMap.get(code.slice(0, 4)).ΠΕΡΙΓΡΑΦΗ
+        koinPopMap.get(code.slice(0, 4))[2]
       }</h3><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountryStr} Επικράτειας<br />${pDim} Δήμου</i></p>` /* + d["Περιγραφή"] */;
     },
     { sticky: true, offset: [50, 0], className: "koin-tooltip" }
@@ -297,15 +294,15 @@ function createMapAndLayers(dim, enot, koin) {
       // console.log(layer);
       const code = layer.feature.properties.KAL2022;
       const d = koinPopMap.get(code);
-      const pop = d["ΜΟΝΙΜΟΣ ΠΛΗΘΥΣΜΟΣ"];
+      const pop = d[3];
       const [pCountry, pDim, pDimUnit] = calculateAllPercentages(
         parseInt(pop.replaceAll(".", ""), 10),
         code
       );
       return `<h2>${layer.feature.properties.LAU_LABEL3}</h2><h3>${
-        koinPopMap.get(code.slice(0, 6)).ΠΕΡΙΓΡΑΦΗ
+        koinPopMap.get(code.slice(0, 6))[2]
       }</h3><h5>${
-        koinPopMap.get(code.slice(0, 4)).ΠΕΡΙΓΡΑΦΗ
+        koinPopMap.get(code.slice(0, 4))[2]
       }</h5><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountry} Επικράτειας<br />${pDim} Δήμου<br />${pDimUnit} Δημοτικής Ενότητας</i></p>` /* + d["Περιγραφή"] */;
     },
     { sticky: true, offset: [50, 0], className: "koin-tooltip" }
