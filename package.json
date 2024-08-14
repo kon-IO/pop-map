@@ -1,6 +1,6 @@
 {
   "name": "pop-map",
-  "module": "index.js",
+  "private": true,
   "devDependencies": {
     "@types/bun": "latest",
     "copy-webpack-plugin": "^12.0.2",
