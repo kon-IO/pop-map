@@ -80,10 +80,6 @@ function calculateAllPercentages(koinPop, code) {
   return arr;
 }
 
-const DIM_LAYER = 0;
-const ENOT_LAYER = 1;
-const KOIN_LAYER = 2;
-
 function setInteractiveForLayer(layer, interactive) {
   if (!theMap.hasLayer(layer)) return;
   layer.options.interactive = interactive;
@@ -233,8 +229,8 @@ function createMapAndLayers(dim, enot, koin) {
     },
     { sticky: true, offset: [50, 0] }
   );
-  dimLayer.on("add", () => handleInteractivity(DIM_LAYER));
-  dimLayer.on("remove", () => handleInteractivity(DIM_LAYER));
+  dimLayer.on("add", () => handleInteractivity());
+  dimLayer.on("remove", () => handleInteractivity());
 
   enotLayer = geoJSON(enot, {
     coordsToLatLng: coordsToLatLngCustom,
@@ -271,8 +267,8 @@ function createMapAndLayers(dim, enot, koin) {
     },
     { sticky: true, offset: [50, 0], className: "koin-tooltip" }
   );
-  enotLayer.on("add", () => handleInteractivity(DIM_LAYER));
-  enotLayer.on("remove", () => handleInteractivity(DIM_LAYER));
+  enotLayer.on("add", () => handleInteractivity());
+  enotLayer.on("remove", () => handleInteractivity());
 
   koinLayer = geoJSON(koin, {
     coordsToLatLng: coordsToLatLngCustom,
@@ -307,8 +303,8 @@ function createMapAndLayers(dim, enot, koin) {
     },
     { sticky: true, offset: [50, 0], className: "koin-tooltip" }
   );
-  koinLayer.on("add", () => handleInteractivity(DIM_LAYER));
-  koinLayer.on("remove", () => handleInteractivity(DIM_LAYER));
+  koinLayer.on("add", () => handleInteractivity());
+  koinLayer.on("remove", () => handleInteractivity());
 
   overlayMaps = {
     Δήμοι: dimLayer,
