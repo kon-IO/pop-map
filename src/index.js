@@ -229,8 +229,8 @@ function createMapAndLayers(dim, enot, koin) {
     },
     { sticky: true, offset: [50, 0] }
   );
-  dimLayer.on("add", () => handleInteractivity());
-  dimLayer.on("remove", () => handleInteractivity());
+  dimLayer.on("add", handleInteractivity);
+  dimLayer.on("remove", handleInteractivity);
 
   enotLayer = geoJSON(enot, {
     coordsToLatLng: coordsToLatLngCustom,
@@ -267,8 +267,8 @@ function createMapAndLayers(dim, enot, koin) {
     },
     { sticky: true, offset: [50, 0], className: "koin-tooltip" }
   );
-  enotLayer.on("add", () => handleInteractivity());
-  enotLayer.on("remove", () => handleInteractivity());
+  enotLayer.on("add", handleInteractivity);
+  enotLayer.on("remove", handleInteractivity);
 
   koinLayer = geoJSON(koin, {
     coordsToLatLng: coordsToLatLngCustom,
@@ -303,8 +303,8 @@ function createMapAndLayers(dim, enot, koin) {
     },
     { sticky: true, offset: [50, 0], className: "koin-tooltip" }
   );
-  koinLayer.on("add", () => handleInteractivity());
-  koinLayer.on("remove", () => handleInteractivity());
+  koinLayer.on("add", handleInteractivity);
+  koinLayer.on("remove", handleInteractivity);
 
   overlayMaps = {
     Δήμοι: dimLayer,
