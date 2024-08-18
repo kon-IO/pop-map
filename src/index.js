@@ -126,6 +126,13 @@ function isMobile() {
 }
 
 async function initialize() {
+  if (
+    !confirm(
+      "Η σελίδα αυτή θα κατεβάσει δεδομένα μεγέθους 54MB. Είστε σίγουρος/η ότι θέλετε να συνεχίσετε;"
+    )
+  ) {
+    return;
+  }
   const getGeoDataPromise = Promise.all([
     getAndParseJson("./dimkoin.json"),
     getAndParseJson("./dimenot.json"),
@@ -234,7 +241,7 @@ function createMapAndLayers(dim, enot, koin) {
     )} Επικράτειας</i></p>` /* + d[2] */;
   };
   if (mob) {
-    dimLayer.bindPopup(dimContentFunc);
+    dimLayer.bindPopup(dimContentFunc, { offset: [0, -50] });
   } else {
     dimLayer.bindTooltip(dimContentFunc, { sticky: true, offset: [50, 0] });
   }
@@ -275,7 +282,7 @@ function createMapAndLayers(dim, enot, koin) {
     }</h3><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountryStr} Επικράτειας<br />${pDim} Δήμου</i></p>` /* + d["Περιγραφή"] */;
   };
   if (mob) {
-    enotLayer.bindPopup(enotContentFunc);
+    enotLayer.bindPopup(enotContentFunc, { offset: [0, -50] });
   } else {
     enotLayer.bindTooltip(enotContentFunc, {
       sticky: true,
@@ -318,7 +325,7 @@ function createMapAndLayers(dim, enot, koin) {
     }</h5><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountry} Επικράτειας<br />${pDim} Δήμου<br />${pDimUnit} Δημοτικής Ενότητας</i></p>` /* + d["Περιγραφή"] */;
   };
   if (mob) {
-    koinLayer.bindPopup(koinContentFunc);
+    koinLayer.bindPopup(koinContentFunc, { offset: [0, -50] });
   } else {
     koinLayer.bindTooltip(koinContentFunc, {
       sticky: true,
