@@ -124,11 +124,12 @@ function isMobile() {
 async function initialize() {
   if (
     !confirm(
-      "Η σελίδα αυτή θα κατεβάσει δεδομένα μεγέθους 54MB. Είστε σίγουρος/η ότι θέλετε να συνεχίσετε;"
+      "Η σελίδα αυτή θα κατεβάσει δεδομένα μεγέθους περίπου 20MB εάν ο περιηγητής σας υποστηρίζει συμπίεση gzip ή 54MB εάν όχι. Είστε σίγουρος/η ότι θέλετε να συνεχίσετε;"
     )
   ) {
     return;
   }
+
   const getGeoDataPromise = Promise.all([
     getAndParseJson("./dimkoin.json"),
     getAndParseJson("./dimenot.json"),
