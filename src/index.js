@@ -121,6 +121,10 @@ function handleInteractivity(layer_num) {
   }
 }
 
+function isMobile() {
+  return !window.matchMedia("(any-pointer:fine)").matches;
+}
+
 async function initialize() {
   const getGeoDataPromise = Promise.all([
     getAndParseJson("./dimkoin.json"),
@@ -200,6 +204,8 @@ function createMapAndLayers(dim, enot, koin) {
   theMap.createPane("enot").style.zIndex = 402;
   theMap.createPane("koin").style.zIndex = 401;
 
+  const mob = isMobile();
+
   dimLayer = geoJSON(dim, {
     coordsToLatLng: coordsToLatLngCustom,
     style: () => {
@@ -214,21 +220,24 @@ function createMapAndLayers(dim, enot, koin) {
       });
     },
     pane: "dim",
-  }).bindTooltip(
-    (layer) => {
-      // console.log(layer);
-      const d = dimPopMap.get(layer.feature.properties.CODE);
-      const popStr = d[4];
-      const pop = parseInt(popStr.replaceAll(".", ""), 10);
-      return `<h2>${
-        layer.feature.properties.NAME_GR
-      }</h2><p class="tooltip-pop">Πληθυσμός 2021: <b>${popStr}</b></p><p><i>${makePopPercentageStr(
-        pop,
-        Math.round((pop / countryPop) * 10000) / 100
-      )} Επικράτειας</i></p>` /* + d[2] */;
-    },
-    { sticky: true, offset: [50, 0] }
-  );
+  });
+  const dimContentFunc = (layer) => {
+    // console.log(layer);
+    const d = dimPopMap.get(layer.feature.properties.CODE);
+    const popStr = d[4];
+    const pop = parseInt(popStr.replaceAll(".", ""), 10);
+    return `<h2>${
+      layer.feature.properties.NAME_GR
+    }</h2><p class="tooltip-pop">Πληθυσμός 2021: <b>${popStr}</b></p><p><i>${makePopPercentageStr(
+      pop,
+      Math.round((pop / countryPop) * 10000) / 100
+    )} Επικράτειας</i></p>` /* + d[2] */;
+  };
+  if (mob) {
+    dimLayer.bindPopup(dimContentFunc);
+  } else {
+    dimLayer.bindTooltip(dimContentFunc, { sticky: true, offset: [50, 0] });
+  }
   dimLayer.on("add", handleInteractivity);
   dimLayer.on("remove", handleInteractivity);
 
@@ -247,26 +256,33 @@ function createMapAndLayers(dim, enot, koin) {
       });
     },
     pane: "enot",
-  }).bindTooltip(
-    (layer) => {
-      console.log(layer);
-      const code = layer.feature.properties.CODE;
-      const d = koinPopMap.get(code);
-      const pop = d[3];
-      const [pCountry, pDim] = calculateCountryAndDimPercentage(
-        parseInt(pop.replaceAll(".", ""), 10),
-        code
-      );
-      let pCountryStr = pCountry;
-      if (pCountryStr === 0 && pop !== 0) {
-        pCountryStr = "<0.01";
-      }
-      return `<h2>${layer.feature.properties.NAME_GR}</h2><h3>${
-        koinPopMap.get(code.slice(0, 4))[2]
-      }</h3><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountryStr} Επικράτειας<br />${pDim} Δήμου</i></p>` /* + d["Περιγραφή"] */;
-    },
-    { sticky: true, offset: [50, 0], className: "koin-tooltip" }
-  );
+  });
+  const enotContentFunc = (layer) => {
+    console.log(layer);
+    const code = layer.feature.properties.CODE;
+    const d = koinPopMap.get(code);
+    const pop = d[3];
+    const [pCountry, pDim] = calculateCountryAndDimPercentage(
+      parseInt(pop.replaceAll(".", ""), 10),
+      code
+    );
+    let pCountryStr = pCountry;
+    if (pCountryStr === 0 && pop !== 0) {
+      pCountryStr = "<0.01";
+    }
+    return `<h2>${layer.feature.properties.NAME_GR}</h2><h3>${
+      koinPopMap.get(code.slice(0, 4))[2]
+    }</h3><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountryStr} Επικράτειας<br />${pDim} Δήμου</i></p>` /* + d["Περιγραφή"] */;
+  };
+  if (mob) {
+    enotLayer.bindPopup(enotContentFunc);
+  } else {
+    enotLayer.bindTooltip(enotContentFunc, {
+      sticky: true,
+      offset: [50, 0],
+      className: "koin-tooltip",
+    });
+  }
   enotLayer.on("add", handleInteractivity);
   enotLayer.on("remove", handleInteractivity);
 
@@ -285,24 +301,31 @@ function createMapAndLayers(dim, enot, koin) {
       });
     },
     pane: "koin",
-  }).bindTooltip(
-    (layer) => {
-      // console.log(layer);
-      const code = layer.feature.properties.KAL2022;
-      const d = koinPopMap.get(code);
-      const pop = d[3];
-      const [pCountry, pDim, pDimUnit] = calculateAllPercentages(
-        parseInt(pop.replaceAll(".", ""), 10),
-        code
-      );
-      return `<h2>${layer.feature.properties.LAU_LABEL3}</h2><h3>${
-        koinPopMap.get(code.slice(0, 6))[2]
-      }</h3><h5>${
-        koinPopMap.get(code.slice(0, 4))[2]
-      }</h5><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountry} Επικράτειας<br />${pDim} Δήμου<br />${pDimUnit} Δημοτικής Ενότητας</i></p>` /* + d["Περιγραφή"] */;
-    },
-    { sticky: true, offset: [50, 0], className: "koin-tooltip" }
-  );
+  });
+  const koinContentFunc = (layer) => {
+    // console.log(layer);
+    const code = layer.feature.properties.KAL2022;
+    const d = koinPopMap.get(code);
+    const pop = d[3];
+    const [pCountry, pDim, pDimUnit] = calculateAllPercentages(
+      parseInt(pop.replaceAll(".", ""), 10),
+      code
+    );
+    return `<h2>${layer.feature.properties.LAU_LABEL3}</h2><h3>${
+      koinPopMap.get(code.slice(0, 6))[2]
+    }</h3><h5>${
+      koinPopMap.get(code.slice(0, 4))[2]
+    }</h5><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountry} Επικράτειας<br />${pDim} Δήμου<br />${pDimUnit} Δημοτικής Ενότητας</i></p>` /* + d["Περιγραφή"] */;
+  };
+  if (mob) {
+    koinLayer.bindPopup(koinContentFunc);
+  } else {
+    koinLayer.bindTooltip(koinContentFunc, {
+      sticky: true,
+      offset: [50, 0],
+      className: "koin-tooltip",
+    });
+  }
   koinLayer.on("add", handleInteractivity);
   koinLayer.on("remove", handleInteractivity);
 
