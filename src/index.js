@@ -14,12 +14,8 @@ function coordsToLatLngCustom(coords) {
   return new LatLng(coords[1] + 0.00255, coords[0] + 0.0019, coords[2]);
 }
 
-const dimPopMap = new Map();
 const koinPopMap = new Map();
 
-// Mode: "dim" | "koin"
-
-let mode = "dim";
 let theMap;
 
 const mapLayer = tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -138,22 +134,16 @@ async function initialize() {
     getAndParseJson("./dimenot.json"),
     getAndParseJson("./dim.json"),
   ]);
-  let dimdata, koindata;
+  let koindata;
   try {
-    [dimdata, koindata] = await Promise.all([
-      getAndParseJson("./dimdata-array.json"),
-      getAndParseJson("./koindata-array.json"),
-    ]);
+    koindata = await getAndParseJson("./koindata-array.json");
   } catch (e) {
     alert("Oops! Something went wrong...1 " + e);
     return;
   }
 
-  countryPop = parseInt(dimdata[0][4].replaceAll(".", ""), 10);
+  countryPop = parseInt(koindata[0][3].replaceAll(".", ""), 10);
 
-  dimdata.forEach((d) => {
-    dimPopMap.set(d[1], d);
-  });
   // Code to detect geographic code mismatch between the two datasets based on the description
   // dim.features.forEach((f) => {
   //   const da = dimPopMap.get(f.properties.CODE);
@@ -230,8 +220,8 @@ function createMapAndLayers(dim, enot, koin) {
   });
   const dimContentFunc = (layer) => {
     // console.log(layer);
-    const d = dimPopMap.get(layer.feature.properties.CODE);
-    const popStr = d[4];
+    const d = koinPopMap.get(layer.feature.properties.CODE);
+    const popStr = d[3];
     const pop = parseInt(popStr.replaceAll(".", ""), 10);
     return `<h2>${
       layer.feature.properties.NAME_GR
