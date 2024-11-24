@@ -35,7 +35,6 @@ Control.Search = Control.extend({
 
     const sel = DomUtil.create("select", "search-sel", div);
     sel.setAttribute("size", 3);
-    sel.setAttribute("multiselect", true);
     sel.onchange = (e) => {
       const place = settlements.get(e.target.value);
       if (place === undefined) {
