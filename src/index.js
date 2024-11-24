@@ -2,17 +2,68 @@ import {
   geoJSON,
   map,
   tileLayer,
-  GeoJSON,
   LatLng,
   control,
-  tooltip,
-  Point,
   DomUtil,
+  Control,
+  DomEvent,
 } from "leaflet";
 
 function coordsToLatLngCustom(coords) {
   return new LatLng(coords[1] + 0.00255, coords[0] + 0.0019, coords[2]);
 }
+
+let settlements;
+
+function search(text) {
+  return settlements
+    .entries()
+    .filter(([k, v]) => v[1].some((i) => i[1].startsWith(text)));
+}
+
+Control.Search = Control.extend({
+  onAdd: function (map) {
+    const div = DomUtil.create("form", "search-div");
+    DomEvent.on(div, "submit", (e) => {
+      e.preventDefault();
+    });
+
+    const box = DomUtil.create("input", "search-box", div);
+    box.setAttribute("type", "text");
+    box.setAttribute("aria-label", "Αναζήτηση οικισμού");
+    box.setAttribute("placeholder", "Αναζήτηση οικισμού...");
+
+    const sel = DomUtil.create("select", "search-sel", div);
+    sel.setAttribute("size", 3);
+    sel.setAttribute("multiselect", true);
+    sel.onchange = (e) => {
+      const place = settlements.get(e.target.value);
+      if (place === undefined) {
+        return;
+      }
+      theMap.flyTo([place[0][1], place[0][0]], 15, { duration: 1 });
+    };
+
+    DomEvent.on(box, "keyup", (e) => {
+      sel.replaceChildren();
+      for (let [code, place] of search(e.target.value.trim())) {
+        const opt = DomUtil.create("option", undefined, sel);
+        opt.text = place[1].map((i) => `${i[1]}, ${i[0]}`).join("\n");
+        opt.value = code;
+      }
+    });
+
+    this.div = div;
+    return div;
+  },
+  onRemove: function (map) {
+    DomEvent.off(this.div);
+  },
+});
+
+control.search = function (opts) {
+  return new Control.Search(opts);
+};
 
 const koinPopMap = new Map();
 
@@ -41,7 +92,7 @@ async function getAndParseJson(url) {
 function makePopPercentageStr(pop, percentage) {
   let pStr;
   if (percentage === 0 && pop !== 0) {
-    pStr = "<0,01%";
+    pStr = "<0,001%";
   } else {
     pStr = percentage.toLocaleString("el-GR") + "%";
   }
@@ -54,8 +105,8 @@ function calculateCountryAndDimPercentage(pop, code) {
     10
   );
   return [
-    makePopPercentageStr(pop, Math.round((pop / countryPop) * 10000) / 100),
-    makePopPercentageStr(pop, Math.round((pop / dimPop) * 10000) / 100),
+    makePopPercentageStr(pop, Math.round((pop / countryPop) * 100000) / 1000),
+    makePopPercentageStr(pop, Math.round((pop / dimPop) * 100000) / 1000),
   ];
 }
 
@@ -69,7 +120,7 @@ function calculateAllPercentages(koinPop, code) {
   arr.push(
     makePopPercentageStr(
       koinPop,
-      Math.round((koinPop / dimUnitPop) * 10000) / 100
+      Math.round((koinPop / dimUnitPop) * 100000) / 1000
     )
   );
 
@@ -134,6 +185,7 @@ async function initialize() {
     getAndParseJson("./dimkoin.json"),
     getAndParseJson("./dimenot.json"),
     getAndParseJson("./dim.json"),
+    getAndParseJson("./oikismoi-transformed-array.json"),
   ]);
   let koindata;
   try {
@@ -177,7 +229,9 @@ async function initialize() {
 
   let koin, enot, dim;
   try {
-    [koin, enot, dim] = await getGeoDataPromise;
+    let settlementsTemp;
+    [koin, enot, dim, settlementsTemp] = await getGeoDataPromise;
+    settlements = new Map(settlementsTemp);
   } catch (e) {
     alert("Oops! Something went wrong... " + e);
     return;
@@ -228,7 +282,7 @@ function createMapAndLayers(dim, enot, koin) {
       layer.feature.properties.NAME_GR
     }</h2><p class="tooltip-pop">Πληθυσμός 2021: <b>${popStr}</b></p><p><i>${makePopPercentageStr(
       pop,
-      Math.round((pop / countryPop) * 10000) / 100
+      Math.round((pop / countryPop) * 100000) / 1000
     )} Επικράτειας</i></p>` /* + d[2] */;
   };
   if (mob) {
@@ -264,13 +318,9 @@ function createMapAndLayers(dim, enot, koin) {
       parseInt(pop.replaceAll(".", ""), 10),
       code
     );
-    let pCountryStr = pCountry;
-    if (pCountryStr === 0 && pop !== 0) {
-      pCountryStr = "<0.01";
-    }
     return `<h2>${layer.feature.properties.NAME_GR}</h2><h3>${
       koinPopMap.get(code.slice(0, 4))[2]
-    }</h3><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountryStr} Επικράτειας<br />${pDim} Δήμου</i></p>` /* + d["Περιγραφή"] */;
+    }</h3><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${pop}</b></p><p><i>${pCountry} Επικράτειας<br />${pDim} Δήμου</i></p>` /* + d["Περιγραφή"] */;
   };
   if (mob) {
     enotLayer.bindPopup(enotContentFunc, { offset: [0, -50] });
@@ -340,6 +390,7 @@ function createMapAndLayers(dim, enot, koin) {
   theMap.addLayer(mapLayer);
   theMap.addLayer(dimLayer);
   control.layers(baseMaps, overlayMaps).addTo(theMap);
+  control.search({ position: "topright" }).addTo(theMap);
 }
 
 initialize();

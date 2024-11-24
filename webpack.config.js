@@ -60,6 +60,11 @@ module.exports = {
         },
         {
           to: path.resolve(__dirname, "dist"),
+          context: "./src/settlement-data",
+          from: "*.json",
+        },
+        {
+          to: path.resolve(__dirname, "dist"),
           context: "./node_modules/leaflet/dist",
           from: "leaflet.css"
         },

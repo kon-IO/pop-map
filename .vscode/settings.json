@@ -1,3 +1,4 @@
 {
-    "cSpell.language": "en,el"
+    "cSpell.language": "en,el",
+    "npm.packageManager": "bun"
 }

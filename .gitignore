@@ -177,3 +177,5 @@ dist
 # Data dir
 
 /data/
+
+/*.json
