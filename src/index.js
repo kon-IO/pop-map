@@ -30,27 +30,54 @@ Control.Search = Control.extend({
 
     const box = DomUtil.create("input", "search-box", div);
     box.setAttribute("type", "text");
+    box.setAttribute("list", "search-list");
     box.setAttribute("aria-label", "Αναζήτηση οικισμού");
     box.setAttribute("placeholder", "Αναζήτηση οικισμού...");
 
-    const sel = DomUtil.create("select", "search-sel", div);
-    sel.setAttribute("size", 3);
-    sel.onchange = (e) => {
-      const place = settlements.get(e.target.value);
+    const sel = DomUtil.create("datalist", "search-sel", div);
+    sel.id = "search-list";
+
+    for (let [code, place] of settlements) {
+      const opt = DomUtil.create("option", undefined, sel);
+      opt.value =
+        place[1].map((i) => `${i[1]}, ${i[0]}`).join("\n") + ` (${code})`;
+    }
+    DomEvent.on(box, "input", (e) => {
+      const text = e.target.value + " ";
+      const parenSplit = text.split("(");
+      if (parenSplit.length !== 2) {
+        return;
+      }
+      const parenText = parenSplit[1].trim();
+      const rightParenSplit = parenText.split(")");
+      if (rightParenSplit.length !== 2) {
+        return;
+      }
+      const code = rightParenSplit[0].trim();
+      const place = settlements.get(code);
       if (place === undefined) {
         return;
       }
       theMap.flyTo([place[0][1], place[0][0]], 15, { duration: 1 });
-    };
-
-    DomEvent.on(box, "keyup", (e) => {
-      sel.replaceChildren();
-      for (let [code, place] of search(e.target.value.trim())) {
-        const opt = DomUtil.create("option", undefined, sel);
-        opt.text = place[1].map((i) => `${i[1]}, ${i[0]}`).join("\n");
-        opt.value = code;
-      }
     });
+    //sel.setAttribute("size", 3);
+    //DomEvent.on(sel, "change", (e) => {
+    //  console.log(e.target);
+    //  const place = settlements.get(e.target.value);
+    //  if (place === undefined) {
+    //    return;
+    //  }
+    //  theMap.flyTo([place[0][1], place[0][0]], 15, { duration: 1 });
+    //});
+
+    //DomEvent.on(box, "keyup", (e) => {
+    //  sel.replaceChildren();
+    //  for (let [code, place] of search(e.target.value.trim())) {
+    //    const opt = DomUtil.create("option", undefined, sel);
+    //    opt.text = place[1].map((i) => `${i[1]}, ${i[0]}`).join("\n");
+    //    opt.value = code;
+    //  }
+    //});
 
     this.div = div;
     return div;
