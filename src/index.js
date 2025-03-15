@@ -45,10 +45,10 @@ Control.Search = Control.extend({
     DomEvent.on(box, "input", (e) => {
       const text = e.target.value + " ";
       const parenSplit = text.split("(");
-      if (parenSplit.length !== 2) {
+      if (parenSplit.length < 2) {
         return;
       }
-      const parenText = parenSplit[1].trim();
+      const parenText = parenSplit[parenSplit.length - 1].trim();
       const rightParenSplit = parenText.split(")");
       if (rightParenSplit.length !== 2) {
         return;
@@ -306,7 +306,7 @@ function createMapAndLayers(dim, enot, koin) {
     const pop = parseInt(popStr.replaceAll(".", ""), 10);
     return `<h2>${
       layer.feature.properties.NAME_GR
-    }</h2><p class="tooltip-pop">Πληθυσμός 2021: <b>${popStr}</b></p><p><i>${makePopPercentageStr(
+    }</h2><p class="tooltip-pop-num">Πληθυσμός 2021: <b>${popStr}</b></p><p><i>${makePopPercentageStr(
       pop,
       Math.round((pop / countryPop) * 100000) / 1000
     )} Επικράτειας</i></p>` /* + d[2] */;
