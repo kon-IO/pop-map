@@ -1,17 +1,32 @@
 import {
-  geoJSON,
-  map,
-  tileLayer,
-  LatLng,
   control,
-  DomUtil,
   Control,
   DomEvent,
+  DomUtil,
+  geoJSON,
+  LatLng,
+  map,
+  tileLayer,
 } from "leaflet";
 
 function coordsToLatLngCustom(coords) {
   return new LatLng(coords[1] + 0.00255, coords[0] + 0.0019, coords[2]);
 }
+
+// import proj4 from "proj4";
+
+// proj4.defs(
+//   "EPSG:2100",
+//   'PROJCS["GGRS87 / Greek Grid",GEOGCS["GGRS87",DATUM["Greek_Geodetic_Reference_System_1987",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6121"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4121"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",24],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","2100"]]'
+// );
+// proj4.defs(
+//   "EPSG:2100",
+//   "+proj=tmerc +lat_0=0 +lon_0=24 +k=0.9996 +x_0=500000 +y_0=0 +ellps=GRS80 +towgs84=-199.87,74.79,246.62,0,0,0,0 +units=m +no_defs +type=crs"
+// );
+
+// import _proj4l from "proj4leaflet";
+
+// import { Proj } from "leaflet";
 
 let settlements;
 
@@ -273,6 +288,8 @@ async function initialize() {
 }
 
 function createMapAndLayers(dim, enot, koin) {
+  // console.log(proj4.defs("EPSG:2100"));
+
   theMap = map("map", {
     zoom: 7,
     center: [38.5253, 22.3753],
@@ -281,8 +298,25 @@ function createMapAndLayers(dim, enot, koin) {
   theMap.createPane("dim").style.zIndex = 403;
   theMap.createPane("enot").style.zIndex = 402;
   theMap.createPane("koin").style.zIndex = 401;
+  // new Proj.CRS(
+  //   "EPSG:2100",
+  //   "+proj=tmerc +lat_0=0 +lon_0=24 +k=0.9996 +x_0=500000 +y_0=0 +ellps=GRS80 +towgs84=-199.87,74.79,246.62,0,0,0,0 +units=m +no_defs +type=crs",
+  //   {
+  //     resolutions: [3117.42, 1558.71, 779.35, 389.68],
+  //   }
+  //   // {
+  //   //   resolutions: [8192, 4096, 2048], // 3 example zoom level resolutions
+  //   // }
+  // );
 
   const mob = isMobile();
+
+  // dim.crs = {
+  //   type: "name",
+  //   properties: {
+  //     name: "EPSG:2100",
+  //   },
+  // };
 
   dimLayer = geoJSON(dim, {
     coordsToLatLng: coordsToLatLngCustom,
@@ -318,6 +352,13 @@ function createMapAndLayers(dim, enot, koin) {
   }
   dimLayer.on("add", handleInteractivity);
   dimLayer.on("remove", handleInteractivity);
+
+  // enot.crs = {
+  //   type: "name",
+  //   properties: {
+  //     name: "EPSG:2100",
+  //   },
+  // };
 
   enotLayer = geoJSON(enot, {
     coordsToLatLng: coordsToLatLngCustom,
@@ -359,6 +400,13 @@ function createMapAndLayers(dim, enot, koin) {
   }
   enotLayer.on("add", handleInteractivity);
   enotLayer.on("remove", handleInteractivity);
+
+  // koin.crs = {
+  //   type: "name",
+  //   properties: {
+  //     name: "EPSG:2100",
+  //   },
+  // };
 
   koinLayer = geoJSON(koin, {
     coordsToLatLng: coordsToLatLngCustom,
